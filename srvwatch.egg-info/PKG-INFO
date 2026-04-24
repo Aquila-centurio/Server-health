@@ -1,0 +1,95 @@
+Metadata-Version: 2.4
+Name: srvwatch
+Version: 0.1.0
+Summary: Real-time terminal health dashboard for remote servers via SSH
+License: MIT
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: rich>=13.0
+
+# srvwatch
+
+Real-time terminal health dashboard for remote servers — one command, one IP.
+
+```
+srvwatch 192.168.1.10
+```
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 192.168.1.10  │  Ubuntu 22.04.3 LTS  │  kernel: 5.15.0  │  uptime: 14d 3h 22m  │  py
+╭─ Metrics ──────────────────────────────────────────────────────╮
+│ CPU  [████████████░░░░░░░░░░░░]  52.0%  load: 1.42 0.98 0.81  ▁▂▄▃▅▆▄▅▆█▇▅ │
+│ RAM  [████████████░░░░░░░░░░░░]  51.2%  5.8 GB / 8.0 GB       ▄▄▅▅▅▆▅▅▅▅▅▅ │
+│ DISK [██████░░░░░░░░░░░░░░░░░░]  28.4%  108 GB / 380 GB        ▃▃▃▃▃▃▃▃▃▃▃▃ │
+╰────────────────────────────────────────────────────────────────╯
+  refresh: 3s  │  samples: 24  │  q / Ctrl+C to quit
+```
+
+Sparklines update live — history accumulates while the dashboard is open.
+
+## Requirements
+
+- Python 3.9+ (local machine only)
+- `ssh` in PATH with keys configured (`~/.ssh/config` is used automatically)
+- Remote host: any Linux with `/proc` filesystem and **bash**
+  - Python 3 on the remote is **optional** — tool auto-detects and falls back to pure bash
+
+## Install
+
+```bash
+pip install srvwatch
+```
+
+Or from source:
+
+```bash
+git clone https://github.com/yourname/srvwatch
+cd srvwatch
+pip install -e .
+```
+
+## Usage
+
+```
+srvwatch HOST [options]
+
+positional:
+  HOST              Remote host IP or hostname
+
+options:
+  -u, --user USER   SSH username (default: ~/.ssh/config / current user)
+  -p, --port PORT   SSH port (default: 22)
+  -i, --interval N  Refresh interval seconds (default: 3)
+  -n, --count N     Exit after N samples (default: run forever)
+```
+
+### Examples
+
+```bash
+srvwatch 192.168.1.10
+srvwatch myserver.example.com -u root -p 2222
+srvwatch 10.0.0.5 -i 1
+srvwatch 10.0.0.5 -n 20    # collect 20 samples then exit
+```
+
+## How it works
+
+1. Opens SSH via system `ssh` binary (no extra libraries, uses your existing keys)
+2. Sends a dispatcher script via stdin — **nothing written on the remote host**
+3. Dispatcher checks for `python3`:
+   - **Found** → runs inline Python script reading `/proc/*` — CPU delta over 0.5s
+   - **Not found** → falls back to pure bash + awk — same output, same JSON format
+4. Renders the dashboard locally with `rich`
+
+The badge in the header (`py` / `sh`) shows which collector was used.
+
+## Why not btop / htop / Zabbix?
+
+- **btop/htop** run *on* the server — you need to SSH in first
+- **Zabbix** is great for history and alerting, not for a quick glance at one host
+- **srvwatch** runs locally, no agent required, works even on minimal systems without Python
+
+## License
+
+MIT

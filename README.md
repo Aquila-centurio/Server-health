@@ -1,0 +1,86 @@
+# srvwatch
+
+Real-time terminal health dashboard for remote servers — one command, one IP.
+
+```bash
+srvwatch 192.168.1.10
+```
+
+```
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ 192.168.1.10  │  Ubuntu 22.04.3 LTS  │  kernel: 5.15.0  │  uptime: 14d 3h 22m  │  py
+╭─ Metrics ──────────────────────────────────────────────────────╮
+│ CPU  [████████████░░░░░░░░░░░░]  52.0%  load: 1.42 0.98 0.81  ▁▂▄▃▅▆▄▅▆█▇▅ │
+│ RAM  [████████████░░░░░░░░░░░░]  51.2%  5.8 GB / 8.0 GB       ▄▄▅▅▅▆▅▅▅▅▅▅ │
+│ DISK [██████░░░░░░░░░░░░░░░░░░]  28.4%  108 GB / 380 GB       ▃▃▃▃▃▃▃▃▃▃▃▃ │
+╰────────────────────────────────────────────────────────────────╯
+  refresh: 3s  │  samples: 24  │  q / Ctrl+C to quit
+```
+
+Sparklines update live — history accumulates while the dashboard is open.
+
+## Requirements
+
+- Python 3.9+ (local machine only)
+- `ssh` in PATH with keys configured (`~/.ssh/config` is used automatically)
+- Remote host: any Linux with `/proc` filesystem and **bash**
+- Python 3 on the remote is **optional** — tool auto-detects and falls back to pure bash
+
+## Install
+
+```bash
+pipx install .
+```
+
+If pipx is not installed:
+
+```bash
+sudo apt install pipx
+pipx ensurepath
+pipx install .
+```
+
+## Usage
+
+```
+srvwatch HOST [options]
+
+positional:
+  HOST              Remote host IP or hostname
+
+options:
+  -u, --user USER   SSH username (default: root)
+  -p, --port PORT   SSH port (default: 22)
+  -i, --interval N  Refresh interval in seconds (default: 3)
+  -n, --count N     Exit after N samples (default: run forever)
+```
+
+### Examples
+
+```bash
+srvwatch 192.168.1.10
+srvwatch 10.0.0.5 -p 2222
+srvwatch 10.0.0.5 -i 1
+srvwatch 10.0.0.5 -n 20
+```
+
+## How it works
+
+1. Connects via system `ssh` binary — uses your existing keys and `~/.ssh/config`
+2. Sends a dispatcher script via stdin — **nothing is written on the remote host**
+3. Dispatcher checks for `python3` on the remote:
+   - **Found** → inline Python reads `/proc/*`, CPU delta measured over 0.5s
+   - **Not found** → pure bash + awk fallback, same JSON output
+4. Renders the dashboard locally with `rich`
+
+The badge in the header (`py` / `sh`) shows which collector was used.
+
+## Why not btop / htop / Zabbix?
+
+- **btop/htop** run *on* the server — you need to SSH in first
+- **Zabbix** is great for history and alerting, not for a quick one-host glance
+- **srvwatch** runs locally, no agent required, works on minimal systems without Python
+
+## License
+
+MIT

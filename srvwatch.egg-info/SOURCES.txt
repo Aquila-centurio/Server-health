@@ -1,0 +1,13 @@
+README.md
+pyproject.toml
+srvwatch/__init__.py
+srvwatch/collector.py
+srvwatch/display.py
+srvwatch/history.py
+srvwatch/main.py
+srvwatch.egg-info/PKG-INFO
+srvwatch.egg-info/SOURCES.txt
+srvwatch.egg-info/dependency_links.txt
+srvwatch.egg-info/entry_points.txt
+srvwatch.egg-info/requires.txt
+srvwatch.egg-info/top_level.txt
