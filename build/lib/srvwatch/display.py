@@ -52,6 +52,7 @@ def build_layout(host: str, metrics: HostMetrics, hist: History, interval: int) 
     else:
         collector_badge = (
             "[dim cyan]py[/dim cyan]" if metrics.collector == "python3"
+            else "[dim green]local[/dim green]" if metrics.collector == "local"
             else "[dim yellow]sh[/dim yellow]"
         )
         header_text = Text.from_markup(

@@ -185,8 +185,76 @@ class HostMetrics:
 
 
 # ── SSH collection ───────────────────────────────────────────────────────────
+def collect_local() -> HostMetrics:
+    """Collect metrics from local machine directly, no SSH."""
+    import platform, time
 
+    def read(path):
+        try:
+            return open(path).read()
+        except Exception:
+            return ""
+
+    def cpu_percent():
+        def stat():
+            parts = open("/proc/stat").readline().split()
+            idle = int(parts[4])
+            total = sum(int(x) for x in parts[1:])
+            return idle, total
+        i1, t1 = stat(); time.sleep(0.5); i2, t2 = stat()
+        dt = t2 - t1
+        return round((1 - (i2 - i1) / dt) * 100, 1) if dt else 0.0
+
+    def mem():
+        d = {}
+        for line in read("/proc/meminfo").splitlines():
+            p = line.split()
+            if len(p) >= 2:
+                d[p[0].rstrip(":")] = int(p[1])
+        total = d.get("MemTotal", 0) * 1024
+        used = (d.get("MemTotal", 0) - d.get("MemAvailable", 0)) * 1024
+        return total, used
+
+    def disk():
+        import shutil
+        s = shutil.disk_usage("/")
+        return s.total, s.used
+
+    def uptime():
+        secs = float(open("/proc/uptime").read().split()[0])
+        d = int(secs // 86400); h = int((secs % 86400) // 3600); m = int((secs % 3600) // 60)
+        parts = []
+        if d: parts.append(f"{d}d")
+        if h: parts.append(f"{h}h")
+        parts.append(f"{m}m")
+        return " ".join(parts)
+
+    def os_info():
+        info = {}
+        for line in read("/etc/os-release").splitlines():
+            if "=" in line:
+                k, _, v = line.partition("=")
+                info[k.strip()] = v.strip().strip('"')
+        return info.get("PRETTY_NAME") or info.get("NAME", "Linux")
+
+    la = open("/proc/loadavg").read().split()
+    mt, mu = mem(); dt, du = disk()
+
+    return HostMetrics(
+        cpu=cpu_percent(),
+        mem_total=mt, mem_used=mu,
+        disk_total=dt, disk_used=du,
+        load_avg=[float(la[0]), float(la[1]), float(la[2])],
+        uptime=uptime(),
+        os=os_info(),
+        kernel=platform.release(),
+        collector="local",
+    )
+    
+    
 def collect(
+    
+    
     host: str,
     user: Optional[str] = None,
     port: int = 22,
@@ -196,6 +264,10 @@ def collect(
 
     Tries python3 first; falls back to pure bash automatically.
     """
+    
+    if host in ("localhost", "127.0.0.1", "::1"):
+        return collect_local()
+    
     target = f"{user}@{host}" if user else host
 
     cmd = [

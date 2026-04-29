@@ -26,7 +26,7 @@ examples:
   srvwatch 10.0.0.5 -i 5
         """,
     )
-    parser.add_argument("host", help="Remote host IP or hostname")
+    parser.add_argument("host", nargs="?", default="localhost", help="Remote host IP or hostname (default: localhost)")
     parser.add_argument("-u", "--user", default="root", help="SSH username (default: root)")
     parser.add_argument("-p", "--port", type=int, default=22, help="SSH port (default: 22)")
     parser.add_argument("-i", "--interval", type=int, default=3, help="Refresh interval in seconds (default: 3)")
